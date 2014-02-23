@@ -28,11 +28,12 @@ type Configuration struct {
 	OpticalFlowScale  float32
 	MovementThreshold float32
 	ListenAddress     string
+	OSCServerAddress  string
 }
 
 func parseConfiguration(configFile string) (configuration Configuration) {
 	// Create a default configuration.
-	config := Configuration{300.0, 1.0, ":8080"}
+	config := Configuration{300.0, 1.0, ":8080", ":8000"}
 
 	// Open the configuration file.
 	file, err := os.Open(configFile)

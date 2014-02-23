@@ -30,7 +30,7 @@ func main() {
 	deltaA := make(chan float32) // Channel for communicating the amount of fish activity.
 	deltaL := make(chan float32) // Channel for communicating the water level in the tank.
 
-	go updateEcosystem(deltaA, deltaL) // Updates ecosystem based on fish and human actvity.
+	go updateEcosystem(deltaA, deltaL, config) // Updates ecosystem based on fish and human actvity.
 
 	go updateDispensers(deltaL, config) // Listens for changes in beverage levels.
 

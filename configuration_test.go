@@ -22,10 +22,7 @@ package main
 import "testing"
 
 func TestMissingConfiguration(t *testing.T) {
-	config, err := parseConfiguration("foo")
-	if err == nil {
-		t.Errorf("error not raised for invalid configuration file.")
-	}
+	config := parseConfiguration("foo")
 
 	if config.OpticalFlowScale != 300.0 {
 		t.Errorf("incorrect default optical flow scale.")
@@ -38,13 +35,14 @@ func TestMissingConfiguration(t *testing.T) {
 	if config.ListenAddress != ":8080" {
 		t.Errorf("incorrect default listen address")
 	}
+
+	if config.OSCServerAddress != ":8000" {
+		t.Errorf("incorrect default OSC server address")
+	}
 }
 
 func TestValidConfiguration(t *testing.T) {
-	config, err := parseConfiguration("testdata/test-config.json")
-	if err != nil {
-		t.Errorf("returned error when parsing valid configuration file")
-	}
+	config := parseConfiguration("testdata/test-config.json")
 
 	if config.OpticalFlowScale != 0.23 {
 		t.Errorf("parsed incorrect value for optical flow scale.")
@@ -56,5 +54,9 @@ func TestValidConfiguration(t *testing.T) {
 
 	if config.ListenAddress != "10.1.1.1:8080" {
 		t.Errorf("parsed incorrect listen address")
+	}
+
+	if config.OSCServerAddress != "10.1.1.2:8080" {
+		t.Errorf("parsed incorrect OSC server address")
 	}
 }

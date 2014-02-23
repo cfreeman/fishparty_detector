@@ -19,26 +19,40 @@
 
 package main
 
-// import (
-// 	"bitbucket.org/liamstask/gosc"
-// 	"net"
-// )
+import (
+	"bitbucket.org/liamstask/gosc"
+	"fmt"
+	"net"
+)
 
-func updateEcosystem(deltaA chan float32, deltaL chan float32) {
+func updateEcosystem(deltaA chan float32, deltaL chan float32, config Configuration) {
 	// Notify sound system via OSC.
-	// DEMO OSC code.
-	// m := &osc.Message{Address: "/my/message"}
-	// m.Args = append(m.Args, int32(12345))
-	// m.Args = append(m.Args, "important")
+	var m *osc.Message
 
-	// // error checking omitted for brevity...
-	// addr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:8000")
-	// conn, _ := net.DialUDP("udp", nil, addr)
+	select {
+	case activity := <-deltaA:
+		m = &osc.Message{Address: "/ecosystem/activity"}
+		m.Args = append(m.Args, activity)
 
-	// _, err := m.WriteTo(conn)
-	// if err != nil {
-	// 	// handle error
-	// }
+	case level := <-deltaL:
+		m = &osc.Message{Address: "/ecosystem/level"}
+		m.Args = append(m.Args, level)
+	}
+
+	addr, err := net.ResolveUDPAddr("udp", config.OSCServerAddress)
+	if err != nil {
+		fmt.Printf("Unable to resolve OSC Server '" + config.OSCServerAddress + "'\n")
+	}
+
+	conn, err := net.DialUDP("udp", nil, addr)
+	if err != nil {
+		fmt.Printf("Unable to connect to OSC Server '" + config.OSCServerAddress + "'\n")
+	}
+
+	_, err = m.WriteTo(conn)
+	if err != nil {
+		fmt.Printf("Unable to write to OSC Server '" + config.OSCServerAddress + "'\n")
+	}
 
 	// Notify fishtank.
 	// This will be a restful call to the YUN.
