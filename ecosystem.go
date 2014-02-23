@@ -31,11 +31,11 @@ func updateEcosystem(deltaA chan float32, deltaL chan float32, config Configurat
 
 	select {
 	case activity := <-deltaA:
-		m = &osc.Message{Address: "/ecosystem/activity"}
+		m = &osc.Message{Address: "/tank/activity"}
 		m.Args = append(m.Args, activity)
 
 	case level := <-deltaL:
-		m = &osc.Message{Address: "/ecosystem/level"}
+		m = &osc.Message{Address: "/tank/level"}
 		m.Args = append(m.Args, level)
 	}
 
