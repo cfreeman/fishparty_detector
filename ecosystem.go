@@ -24,12 +24,7 @@ package main
 // 	"net"
 // )
 
-type Ecosystem struct {
-	Fishtank        Tank
-	DrinkDispensers [4]Dispenser
-}
-
-func updateEnvironment(deltaE chan Ecosystem) {
+func updateEcosystem(deltaA chan float32, deltaL chan float32) {
 	// Notify sound system via OSC.
 	// DEMO OSC code.
 	// m := &osc.Message{Address: "/my/message"}

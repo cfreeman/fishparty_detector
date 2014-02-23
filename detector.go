@@ -19,13 +19,107 @@
 
 package main
 
-type Tank struct {
-	FishActivity float32
-	TankLevel    float32 // 1.0 is a full tank, 0.0 is empty.
+// #cgo darwin CFLAGS: -I/opt/local/include -I/opt/local/include/opencv
+// #cgo linux CFLAGS: -I/usr/include -I/usr/include/opencv
+// #cgo CFLAGS: -Wno-error
+// #cgo darwin LDFLAGS: -L/opt/local/lib
+// #cgo linux LDFLAGS: -L/usr/lib
+// #cgo LDFLAGS: -lopencv_highgui -lopencv_core -lopencv_video
+// #include "cv.h"
+// #include "highgui.h"
+import "C"
+
+import (
+	"fmt"
+	"math"
+	"unsafe"
+)
+
+func calcActivity(flow *C.IplImage, config *Configuration) float32 {
+	var i C.int
+	var dx, dy, mx, my float64
+
+	totalPixels := flow.width * flow.height
+
+	// Determine mean movement vector.
+	for i = 0; i < totalPixels; i++ {
+		value := C.cvGet2D(unsafe.Pointer(flow), i/flow.width, i%flow.width)
+		mx += float64(value.val[0])
+		my += float64(value.val[1])
+	}
+	mx = math.Abs(mx / float64(totalPixels))
+	my = math.Abs(my / float64(totalPixels))
+
+	// Accumulate the change in flow across all the pixels.
+	for i = 0; i < totalPixels; i++ {
+		// Remove the mean movement vector to compenstate for the sculpture that might be swaying in the wind.
+		value := C.cvGet2D(unsafe.Pointer(flow), i/flow.width, i%flow.width)
+		dx += math.Max((math.Abs(float64(value.val[0])) - mx), 0.0)
+		dy += math.Max((math.Abs(float64(value.val[1])) - my), 0.0)
+	}
+
+	// average out the magnitude of dx and dy across the whole image.
+	dx = dx / float64(totalPixels)
+	dy = dy / float64(totalPixels)
+
+	// The magnitude of accumulated flow forms our change in energy for the frame.
+	deltaF := float32(math.Sqrt((dx * dx) + (dy * dy)))
+	fmt.Printf("INFO: f:%f m:[%f,%f]\n", deltaF, mx, my)
+
+	// Clamp the energy to start at 0 for 'still' frames with little/no motion.
+	deltaF = float32(math.Max(0.0, float64(deltaF-config.MovementThreshold)))
+
+	// Scale the flow to be less than 0.1 for 'active' frames with lots of motion.
+	deltaF = deltaF / config.OpticalFlowScale
+
+	return deltaF
 }
 
-func updateDetector(deltaE chan Ecosystem) {
-	// Use OpenCV to monitor fish movement with a web cam.
+func updateDetector(deltaA chan float32, config Configuration) {
+	camera := C.cvCaptureFromCAM(-1)
 
-	// Update fish activity in tank.
+	// Shutdown dendrite if no camera detected.
+	if camera == nil {
+		fmt.Printf("WARNING: No camera detected. Shutting down DendriteCam\n")
+		return
+	}
+
+	C.cvSetCaptureProperty(camera, C.CV_CAP_PROP_FRAME_WIDTH, 160)
+	C.cvSetCaptureProperty(camera, C.CV_CAP_PROP_FRAME_HEIGHT, 120)
+
+	// Capture original frame.
+	prev := C.cvCloneImage(C.cvQueryFrame(camera))
+
+	// Save out the first frame for debuging purposes.
+	file := C.CString("frame.png")
+	C.cvSaveImage(file, unsafe.Pointer(prev), nil)
+	C.free(unsafe.Pointer(file))
+
+	flow := C.cvCreateImage(C.cvSize(prev.width, prev.height), C.IPL_DEPTH_32F, 2)
+	prevG := C.cvCreateImage(C.cvSize(prev.width, prev.height), C.IPL_DEPTH_8U, 1)
+	nextG := C.cvCreateImage(C.cvSize(prev.width, prev.height), C.IPL_DEPTH_8U, 1)
+	C.cvConvertImage(unsafe.Pointer(prev), unsafe.Pointer(prevG), 0)
+
+	for {
+		C.cvGrabFrame(camera)
+
+		// Capture the new frame and convert it to grayscale.
+		next := C.cvCloneImage(C.cvQueryFrame(camera))
+		C.cvConvertImage(unsafe.Pointer(prev), unsafe.Pointer(prevG), 0)
+		C.cvConvertImage(unsafe.Pointer(next), unsafe.Pointer(nextG), 0)
+
+		C.cvCalcOpticalFlowFarneback(unsafe.Pointer(prevG), unsafe.Pointer(nextG), unsafe.Pointer(flow), 0.5, 2, 5, 2, 5, 1.1, 0)
+
+		deltaA <- calcActivity(flow, &config)
+
+		C.cvReleaseImage(&prev)
+		prev = next
+	}
+
+	// Never reached - but here in comments for completeness.
+	//C.cvReleaseImage(&prev)
+	//C.cvReleaseImage(&nextG)
+	//C.cvReleaseImage(&prevG)
+	//C.cvReleaseImage(&flow)
+	//C.cvReleaseCapture(&camera)
 }

@@ -19,8 +19,42 @@
 
 package main
 
-func updateDispensers(deltaL chan float32, Configuration config) {
-	// Listen on RESTful API for changes in dispenser level.
+import "testing"
 
-	// Update tank level.
+func TestMissingConfiguration(t *testing.T) {
+	config, err := parseConfiguration("foo")
+	if err == nil {
+		t.Errorf("error not raised for invalid configuration file.")
+	}
+
+	if config.OpticalFlowScale != 300.0 {
+		t.Errorf("incorrect default optical flow scale.")
+	}
+
+	if config.MovementThreshold != 1.0 {
+		t.Errorf("incorrect default movement threshold.")
+	}
+
+	if config.ListenAddress != ":8080" {
+		t.Errorf("incorrect default listen address")
+	}
+}
+
+func TestValidConfiguration(t *testing.T) {
+	config, err := parseConfiguration("testdata/test-config.json")
+	if err != nil {
+		t.Errorf("returned error when parsing valid configuration file")
+	}
+
+	if config.OpticalFlowScale != 0.23 {
+		t.Errorf("parsed incorrect value for optical flow scale.")
+	}
+
+	if config.MovementThreshold != 0.10 {
+		t.Errorf("parsed incorrect value for movement threshold.")
+	}
+
+	if config.ListenAddress != "10.1.1.1:8080" {
+		t.Errorf("parsed incorrect listen address")
+	}
 }
