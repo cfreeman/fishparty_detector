@@ -27,12 +27,10 @@ func main() {
 	fmt.Printf("Fishparty Detector\n")
 
 	config := parseConfiguration("config.json")
-	deltaA := make(chan float32) // Channel for communicating the amount of fish activity.
-	deltaL := make(chan float32) // Channel for communicating the water level in the tank.
+	activityL := make(chan float32) // Channel for communicating the amount of fish activity.
+	tankL := make(chan float32)     // Channel for communicating the water level in the tank.
 
-	go updateEcosystem(deltaA, deltaL, config) // Updates ecosystem based on fish and human actvity.
-
-	go updateDispensers(deltaL, config) // Listens for changes in beverage levels.
-
-	updateDetector(deltaA, config) // Watches for the amount of fish activity.
+	go updateEcosystem(activityL, tankL, config) // Updates ecosystem based on fish and human actvity.
+	go updateDispensers(tankL, config)           // Listens for changes in beverage levels.
+	updateDetector(activityL, config)            // Watches for the amount of fish activity.
 }

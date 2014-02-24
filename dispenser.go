@@ -19,9 +19,47 @@
 
 package main
 
-func updateDispensers(deltaL chan float32, config Configuration) {
+import (
+	"fmt"
+	"net/http"
+	"strconv"
+	"strings"
+)
 
-	// Listen on RESTful API for changes in dispenser level.
+func updateDispensers(tankL chan float32, config Configuration) {
+	// Initialise all the Beverage dispensers in the ecosystem (1.0 is full, 0.0 is empty)
+	BeverageDispensers := [4]float32{1.0, 1.0, 1.0, 1.0}
 
-	// Update tank level.
+	// Generate URL endpoint for each dispenser in the ecosystem.
+	for index, _ := range BeverageDispensers {
+		http.HandleFunc("/"+strconv.Itoa(index)+"/", func(w http.ResponseWriter, r *http.Request) {
+
+			// Derive the ID of the dispenser that just squrited out a beverage.
+			id, err := strconv.Atoi(strings.TrimRight(strings.TrimLeft(r.URL.Path, "/"), "/"))
+			if err != nil {
+				fmt.Printf("ERR: Unable to parse the dispenser id\n")
+				return
+			}
+
+			// Parse the new level to use for the dispenser.
+			i, err := strconv.ParseFloat(r.FormValue("l"), 32)
+			if err != nil {
+				fmt.Printf("ERR: Unable to parse dispenser level\n")
+				return
+			}
+
+			// Update the level of dispenser that was altered.
+			BeverageDispensers[id] = float32(i)
+			fmt.Printf("INFO: B[%d]: %f\n", id, BeverageDispensers[id])
+
+			// ecosystem causality - determine the new level of the fish tank.
+			tank := float32(0.0)
+			for _, dispenserLevel := range BeverageDispensers {
+				tank += dispenserLevel
+			}
+			tankL <- tank / float32(4.0)
+		})
+	}
+
+	http.ListenAndServe(config.ListenAddress, nil)
 }

@@ -64,18 +64,18 @@ func calcActivity(flow *C.IplImage, config *Configuration) float32 {
 
 	// The magnitude of accumulated flow forms our change in energy for the frame.
 	deltaF := float32(math.Sqrt((dx * dx) + (dy * dy)))
-	fmt.Printf("INFO: f:%f m:[%f,%f]\n", deltaF, mx, my)
 
 	// Clamp the energy to start at 0 for 'still' frames with little/no motion.
 	deltaF = float32(math.Max(0.0, float64(deltaF-config.MovementThreshold)))
 
 	// Scale the flow to be less than 0.1 for 'active' frames with lots of motion.
 	deltaF = deltaF / config.OpticalFlowScale
+	fmt.Printf("INFO: F[%f,%f]:%f\n", mx, my, deltaF)
 
 	return deltaF
 }
 
-func updateDetector(deltaA chan float32, config Configuration) {
+func updateDetector(activityL chan float32, config Configuration) {
 	camera := C.cvCaptureFromCAM(-1)
 
 	// Shutdown dendrite if no camera detected.
@@ -86,6 +86,7 @@ func updateDetector(deltaA chan float32, config Configuration) {
 
 	C.cvSetCaptureProperty(camera, C.CV_CAP_PROP_FRAME_WIDTH, 160)
 	C.cvSetCaptureProperty(camera, C.CV_CAP_PROP_FRAME_HEIGHT, 120)
+	fmt.Printf("INFO: OpenCV started.\n")
 
 	// Capture original frame.
 	prev := C.cvCloneImage(C.cvQueryFrame(camera))
@@ -110,7 +111,7 @@ func updateDetector(deltaA chan float32, config Configuration) {
 
 		C.cvCalcOpticalFlowFarneback(unsafe.Pointer(prevG), unsafe.Pointer(nextG), unsafe.Pointer(flow), 0.5, 2, 5, 2, 5, 1.1, 0)
 
-		deltaA <- calcActivity(flow, &config)
+		activityL <- calcActivity(flow, &config)
 
 		C.cvReleaseImage(&prev)
 		prev = next

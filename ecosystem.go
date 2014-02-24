@@ -25,35 +25,39 @@ import (
 	"net"
 )
 
-func updateEcosystem(deltaA chan float32, deltaL chan float32, config Configuration) {
-	// Notify sound system via OSC.
-	var m *osc.Message
+func updateEcosystem(activityL chan float32, tankL chan float32, config Configuration) {
+	for {
+		// Notify sound system via OSC.
+		var m *osc.Message
 
-	select {
-	case activity := <-deltaA:
-		m = &osc.Message{Address: "/tank/activity"}
-		m.Args = append(m.Args, activity)
+		select {
+		case activity := <-activityL:
+			fmt.Printf("Activity %f\n", activity)
+			m = &osc.Message{Address: "/tank/activity"}
+			m.Args = append(m.Args, activity)
 
-	case level := <-deltaL:
-		m = &osc.Message{Address: "/tank/level"}
-		m.Args = append(m.Args, level)
+		case level := <-tankL:
+			fmt.Printf("Level %f\n", level)
+			m = &osc.Message{Address: "/tank/level"}
+			m.Args = append(m.Args, level)
+		}
+
+		addr, err := net.ResolveUDPAddr("udp", config.OSCServerAddress)
+		if err != nil {
+			fmt.Printf("Unable to resolve OSC Server '" + config.OSCServerAddress + "'\n")
+		}
+
+		conn, err := net.DialUDP("udp", nil, addr)
+		if err != nil {
+			fmt.Printf("Unable to connect to OSC Server '" + config.OSCServerAddress + "'\n")
+		}
+
+		_, err = m.WriteTo(conn)
+		if err != nil {
+			fmt.Printf("Unable to write to OSC Server '" + config.OSCServerAddress + "'\n")
+		}
+
+		// Notify fishtank.
+		// This will be a restful call to the YUN.
 	}
-
-	addr, err := net.ResolveUDPAddr("udp", config.OSCServerAddress)
-	if err != nil {
-		fmt.Printf("Unable to resolve OSC Server '" + config.OSCServerAddress + "'\n")
-	}
-
-	conn, err := net.DialUDP("udp", nil, addr)
-	if err != nil {
-		fmt.Printf("Unable to connect to OSC Server '" + config.OSCServerAddress + "'\n")
-	}
-
-	_, err = m.WriteTo(conn)
-	if err != nil {
-		fmt.Printf("Unable to write to OSC Server '" + config.OSCServerAddress + "'\n")
-	}
-
-	// Notify fishtank.
-	// This will be a restful call to the YUN.
 }
