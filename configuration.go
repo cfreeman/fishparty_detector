@@ -29,11 +29,12 @@ type Configuration struct {
 	MovementThreshold float32
 	ListenAddress     string
 	OSCServerAddress  string
+	TankAddress       string
 }
 
 func parseConfiguration(configFile string) (configuration Configuration) {
 	// Create a default configuration.
-	config := Configuration{300.0, 1.0, ":8080", ":8000"}
+	config := Configuration{300.0, 1.0, ":8080", ":8000", "192.168.0.6"}
 
 	// Open the configuration file.
 	file, err := os.Open(configFile)

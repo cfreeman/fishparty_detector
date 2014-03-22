@@ -2,5 +2,6 @@
 	"OpticalFlowScale": 0.23,
 	"MovementThreshold": 0.10,
 	"ListenAddress": "10.1.1.1:8080",
-	"OSCServerAddress": "10.1.1.2:8080"
+	"OSCServerAddress": "10.1.1.2:8080",
+	"TankAddress": "192.168.0.12"
 }

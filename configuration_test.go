@@ -39,6 +39,10 @@ func TestMissingConfiguration(t *testing.T) {
 	if config.OSCServerAddress != ":8000" {
 		t.Errorf("incorrect default OSC server address")
 	}
+
+	if config.TankAddress != "192.168.0.6" {
+		t.Errorf("incorrect default tank address")
+	}
 }
 
 func TestValidConfiguration(t *testing.T) {
@@ -58,5 +62,9 @@ func TestValidConfiguration(t *testing.T) {
 
 	if config.OSCServerAddress != "10.1.1.2:8080" {
 		t.Errorf("parsed incorrect OSC server address")
+	}
+
+	if config.TankAddress != "192.168.0.12" {
+		t.Errorf("parsed incorrect tank address")
 	}
 }

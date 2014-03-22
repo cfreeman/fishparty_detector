@@ -23,6 +23,7 @@ import (
 	"bitbucket.org/liamstask/gosc"
 	"fmt"
 	"net"
+	"net/http"
 )
 
 // Representation of the audio state within Reaper.
@@ -70,14 +71,18 @@ func updateEcosystem(activityL chan float32, tankL chan float32, config Configur
 		select {
 		case activity = <-activityL:
 			fmt.Printf("Activity: %f\n", activity)
+			// TODO: Handle the activity level distortion effects.
 
 		case level = <-tankL:
 			fmt.Printf("TankL: %f\n", level)
 			audioTracks = updateAudio(audioTracks, level, config)
-		}
 
-		// Notify fishtank.
-		// This will be a restful call to the YUN.
+			// Notify fishtank.
+			_, err := http.Get(fmt.Sprintf("http://%s/arduino/drain/%f", config.TankAddress, level))
+			if err != nil {
+				fmt.Printf("Unable to notify fishtank YUN.")
+			}
+		}
 	}
 }
 
