@@ -25,39 +25,87 @@ import (
 	"net"
 )
 
+// Representation of the audio state within Reaper.
+const NUM_TRACKS int = 16
+
+type Track struct {
+	TrackID      int
+	Muted        bool
+	TriggerStart float32
+	TriggerEnd   float32
+}
+
+func updateAudio(tracks []Track, tankLevel float32, config Configuration) []Track {
+	newTrackState := make([]Track, NUM_TRACKS)
+
+	for key, track := range tracks {
+		if tankLevel >= track.TriggerStart && tankLevel < track.TriggerEnd && track.Muted {
+			track.Muted = false
+			notifyReaper(track, config)
+		}
+
+		// TODO: Handle the activity level distortion effects.
+
+		newTrackState[key] = track
+	}
+
+	return newTrackState
+}
+
 func updateEcosystem(activityL chan float32, tankL chan float32, config Configuration) {
+	audioTracks := make([]Track, NUM_TRACKS)
+
+	// Setup each of the audio tracks that exist in Reaper.
+	triggerFraction := (float32(1.0) / float32(16))
+	for key, _ := range make([]Track, NUM_TRACKS) {
+		audioTracks[key].TriggerStart = 1.0 - (float32(key+1) * triggerFraction)
+		audioTracks[key].TriggerEnd = 1.0 - (float32(key) * triggerFraction)
+		audioTracks[key].Muted = true
+		audioTracks[key].TrackID = (key + 1)
+	}
+	activity := float32(0.0)
+	level := float32(0.0)
+
 	for {
-		// Notify sound system via OSC.
-		var m *osc.Message
-
 		select {
-		case activity := <-activityL:
-			fmt.Printf("Activity %f\n", activity)
-			m = &osc.Message{Address: "/tank/activity"}
-			m.Args = append(m.Args, activity)
+		case activity = <-activityL:
+			fmt.Printf("Activity: %f\n", activity)
 
-		case level := <-tankL:
-			fmt.Printf("Level %f\n", level)
-			m = &osc.Message{Address: "/tank/level"}
-			m.Args = append(m.Args, level)
-		}
-
-		addr, err := net.ResolveUDPAddr("udp", config.OSCServerAddress)
-		if err != nil {
-			fmt.Printf("Unable to resolve OSC Server '" + config.OSCServerAddress + "'\n")
-		}
-
-		conn, err := net.DialUDP("udp", nil, addr)
-		if err != nil {
-			fmt.Printf("Unable to connect to OSC Server '" + config.OSCServerAddress + "'\n")
-		}
-
-		_, err = m.WriteTo(conn)
-		if err != nil {
-			fmt.Printf("Unable to write to OSC Server '" + config.OSCServerAddress + "'\n")
+		case level = <-tankL:
+			fmt.Printf("TankL: %f\n", level)
+			audioTracks = updateAudio(audioTracks, level, config)
 		}
 
 		// Notify fishtank.
 		// This will be a restful call to the YUN.
+	}
+}
+
+func notifyReaper(track Track, config Configuration) {
+	var m *osc.Message
+
+	m = &osc.Message{Address: fmt.Sprintf("/track/%d/mute", track.TrackID)}
+	if track.Muted {
+		m.Args = append(m.Args, int32(1))
+	} else {
+		m.Args = append(m.Args, int32(0))
+	}
+	sendOSCMessage(m, config.OSCServerAddress)
+}
+
+func sendOSCMessage(msg *osc.Message, address string) {
+	addr, err := net.ResolveUDPAddr("udp", address)
+	if err != nil {
+		fmt.Printf("Unable to resolve OSC Server '" + address + "'\n")
+	}
+
+	conn, err := net.DialUDP("udp", nil, addr)
+	if err != nil {
+		fmt.Printf("Unable to connect to OSC Server '" + address + "'\n")
+	}
+
+	_, err = msg.WriteTo(conn)
+	if err != nil {
+		fmt.Printf("Unable to write to OSC Server '" + address + "'\n")
 	}
 }
