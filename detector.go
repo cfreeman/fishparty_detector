@@ -70,7 +70,7 @@ func calcActivity(flow *C.IplImage, config *Configuration) float32 {
 
 	// Scale the flow to be less than 0.1 for 'active' frames with lots of motion.
 	deltaF = deltaF / config.OpticalFlowScale
-	fmt.Printf("INFO: F[%f,%f]:%f\n", mx, my, deltaF)
+	// fmt.Printf("INFO: F[%f,%f]:%f\n", mx, my, deltaF)
 
 	return deltaF
 }
