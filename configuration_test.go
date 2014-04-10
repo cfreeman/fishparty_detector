@@ -36,7 +36,7 @@ func TestMissingConfiguration(t *testing.T) {
 		t.Errorf("incorrect default listen address")
 	}
 
-	if config.OSCServerAddress != ":8000" {
+	if config.OSCServerAddress != "192.168.0.7:8000" {
 		t.Errorf("incorrect default OSC server address")
 	}
 

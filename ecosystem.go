@@ -78,9 +78,10 @@ func updateEcosystem(activityL chan float32, tankL chan float32, config Configur
 			audioTracks = updateAudio(audioTracks, level, config)
 
 			// Notify fishtank.
-			_, err := http.Get(fmt.Sprintf("http://%s/arduino/drain/%f", config.TankAddress, level))
+			url := fmt.Sprintf("http://%s/arduino/drain/%f", config.TankAddress, level)
+			_, err := http.Get(url)
 			if err != nil {
-				fmt.Printf("Unable to notify fishtank YUN.")
+				fmt.Printf("Unable to notify fishtank YUN: " + url)
 			}
 		}
 	}
