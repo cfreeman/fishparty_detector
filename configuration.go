@@ -34,7 +34,7 @@ type Configuration struct {
 
 func parseConfiguration(configFile string) (configuration Configuration) {
 	// Create a default configuration.
-	config := Configuration{300.0, 1.0, ":8080", "192.168.0.7:8000", "192.168.0.6"}
+	config := Configuration{5.0, 0.65, ":8080", "192.168.0.7:8000", "192.168.0.6"}
 
 	// Open the configuration file.
 	file, err := os.Open(configFile)

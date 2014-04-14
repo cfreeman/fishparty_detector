@@ -45,8 +45,6 @@ func updateAudio(tracks []Track, tankLevel float32, config Configuration) []Trac
 			notifyReaper(track, config)
 		}
 
-		// TODO: Handle the activity level distortion effects.
-
 		newTrackState[key] = track
 	}
 
@@ -71,7 +69,7 @@ func updateEcosystem(activityL chan float32, tankL chan float32, config Configur
 		select {
 		case activity = <-activityL:
 			fmt.Printf("Activity: %f\n", activity)
-			// TODO: Handle the activity level distortion effects.
+			twerkReaper(activity, config)
 
 		case level = <-tankL:
 			fmt.Printf("TankL: %f\n", level)
@@ -84,6 +82,16 @@ func updateEcosystem(activityL chan float32, tankL chan float32, config Configur
 				fmt.Printf("Unable to notify fishtank YUN: " + url)
 			}
 		}
+	}
+}
+
+func twerkReaper(activityLevel float32, config Configuration) {
+	var m *osc.Message
+
+	for t := 17; t < 21; t++ {
+		m = &osc.Message{Address: fmt.Sprintf("/track/%d/volume", t)}
+		m.Args = append(m.Args, float32(activityLevel))
+		sendOSCMessage(m, config.OSCServerAddress)
 	}
 }
 
